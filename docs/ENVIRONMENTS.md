@@ -15,7 +15,7 @@ Una rama Git no separa datos ni credenciales. Producción y desarrollo deben usa
 
 El repositorio incluye `supabase/migrations`. Antes de activar sincronización automática con una integración GitHub existente, revisar la base de destino y su historial de migraciones. No aplicar la migración inicial sobre una base desconocida.
 
-No se agrega despliegue automático por ahora: se debe verificar primero el repositorio que ya está vinculado a Supabase, la rama de producción y el destino de desarrollo para no duplicar ejecuciones de migraciones.
+La integración nativa GitHub → Supabase despliega las migraciones de `develop` sobre `frbbsyvanjmmizvbvvja`, utilizado como desarrollo. Directorio de trabajo: `.`. No añadir un segundo flujo de `db push` en GitHub Actions contra el mismo destino. `main` todavía no tiene base productiva asociada ni despliegue web automático.
 
 ## Configuración y secretos
 
