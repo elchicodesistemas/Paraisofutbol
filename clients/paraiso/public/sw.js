@@ -1,0 +1,4 @@
+const CACHE='paraiso-pilot-v2';const ASSETS=['/','/app.js','/club.css','/pilot.css','/escudo.png','/manifest.webmanifest','/icons/icon-192.png','/icons/icon-512.png'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',e=>e.waitUntil(Promise.all([self.clients.claim(),caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('paraiso-pilot-')&&k!==CACHE).map(k=>caches.delete(k))))])));
+self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(u.origin!==location.origin||e.request.method!=='GET')return;if(!ASSETS.includes(u.pathname)&&e.request.mode!=='navigate')return;e.respondWith(fetch(e.request).catch(async()=>await caches.match(e.request.mode==='navigate'?'/':e.request)||Response.error()));});

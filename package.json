@@ -1,0 +1,9 @@
+{
+  "name": "pwa-business-suite",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Reusable multi-tenant PWA starter",
+  "scripts": { "dev": "node scripts/serve.mjs", "test": "node --test", "check": "node scripts/check.mjs" },
+  "engines": { "node": ">=22" }
+}

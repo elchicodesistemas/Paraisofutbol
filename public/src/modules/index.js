@@ -1,0 +1,11 @@
+import auth from './auth/index.js';
+import push from './push/index.js';
+import calendar from './calendar/index.js';
+import payments from './payments/index.js';
+import documents from './documents/index.js';
+import chat from './chat/index.js';
+import agenda from './agenda/index.js';
+import qr from './qr/index.js';
+import loyalty from './loyalty/index.js';
+import admin from './admin/index.js';
+export default [auth,push,calendar,payments,documents,chat,agenda,qr,loyalty,admin];

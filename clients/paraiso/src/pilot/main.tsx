@@ -1,0 +1,12 @@
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import Home from '../app/page';
+import Activities from '../app/actividades/page';
+import Bookings from '../app/reservas/page';
+import Registration from '../app/inscripciones/page';
+import Admin from '../app/gestion/page';
+import {AccessGate,LoginPage,AccountPage} from './accounts';
+const routes:Record<string,React.ComponentType>={'/':Home,'/actividades':Activities,'/reservas':()=> <AccessGate roles={['admin','family']}><Bookings/></AccessGate>,'/inscripciones':()=> <AccessGate roles={['admin','family']}><Registration/></AccessGate>,'/gestion':()=> <AccessGate roles={['admin']}><Admin/></AccessGate>,'/login':LoginPage,'/mi-cuenta':AccountPage};
+const Page=routes[location.pathname]||Home;
+createRoot(document.getElementById('root')!).render(<><div className="pilotbar"><strong>Piloto local · Paraíso Fútbol</strong><span>Usá datos ficticios. Sin turnos, inscripciones ni cobros reales.</span><a href="/mi-cuenta">Mi espacio ↗</a></div><Page/></>);
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');

@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+node_modules/
+coverage/
+.runtime/
+*.log
+supabase/.temp/
+supabase/.branches/
+public/config.local.js
+clients/*/public/config.local.js
