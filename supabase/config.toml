@@ -1,0 +1,6 @@
+# This Supabase project is the DEVELOPMENT environment.
+# GitHub integration deploys migrations from develop, never main.
+project_id = "paraiso-development"
+
+[db.seed]
+enabled = false
