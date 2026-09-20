@@ -22,10 +22,10 @@ La integración nativa GitHub → Supabase despliega las migraciones de `develop
 - URL y clave publishable/anon son configuración pública del frontend. Su seguridad depende de Auth y RLS.
 - Tokens de administración, contraseñas de base de datos y claves secret/service_role nunca van al frontend ni a Git.
 - Variables privadas se guardan localmente en archivos ignorados o en los secretos del entorno de GitHub correspondiente.
-- Las cuentas `admin`, `familia`, `alumno` y `profe` actuales son demo. No deben convertirse en accesos productivos compartidos.
+- Las cuentas de Supabase con correos `@paraiso.example.com` son exclusivamente de prueba. Sus claves individuales se guardan en `.runtime`, fuera de Git. No deben convertirse en accesos productivos compartidos.
 
 ## Estado de conexión
 
-La aplicación general tiene un adaptador Supabase preparado. El piloto deportivo todavía usa autenticación y almacenamiento locales. Conectar el piloto requiere implementar Auth real, membresías por rol, tablas deportivas y permisos por propietario, y probarlos antes de cambiar el modo demo.
+La aplicación general Nexo conserva el modo demo. El piloto deportivo usa Auth real y reservas en Supabase con roles propios, RLS por propietario y exclusión de horarios superpuestos. Inscripciones y asistencias permanecen pendientes. La migración `202609200001_club_reservations.sql` implementa este circuito; la asignación de cuentas de prueba se realiza por separado mediante `seed-club-development.sql`.
 
 Documentación oficial: https://supabase.com/docs/guides/deployment/managing-environments

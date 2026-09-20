@@ -1,26 +1,23 @@
+import {backend,tenantId} from './backend.ts';
 export type Role='admin'|'family'|'student'|'teacher';
-export type DemoUser={id:string;username:string;name:string;role:Role};
+export type ClubUser={id:string;name:string;role:Role};
 export const roleNames:Record<Role,string>={admin:'Administrador',family:'Familia',student:'Alumno',teacher:'Profesor'};
-export const demoUsers:DemoUser[]=[
-  {id:'admin-demo',username:'admin',name:'Administración demo',role:'admin'},
-  {id:'family-demo',username:'familia',name:'Familia de Alex · demo',role:'family'},
-  {id:'student-demo',username:'alumno',name:'Alex · alumno demo',role:'student'},
-  {id:'teacher-demo',username:'profe',name:'Marcos · profesor demo',role:'teacher'},
-];
-export const demoPassword='Paraiso123!';
-const sessionKey='nexo:paraiso:demo-session:v1';
-export function currentUser():DemoUser|null{
-  try{const saved=JSON.parse(sessionStorage.getItem(sessionKey)||'null');
-    if(!saved||saved.expiresAt<Date.now())return null;
-    return demoUsers.find(user=>user.id===saved.id)||null;
-  }catch{return null;}
+let user:ClubUser|null=null;
+export const currentUser=()=>user;
+export async function restoreSession(){
+  user=null;
+  if(!backend.user)return;
+  const verified=await backend.request('/auth/v1/user');
+  const rows=await backend.request(`/rest/v1/club_members?tenant_id=eq.${tenantId}&user_id=eq.${verified.id}&select=user_id,role,display_name`);
+  if(!rows[0])throw Error('Tu cuenta todavía no tiene acceso a este club. Pedí al administrador que te asigne un perfil.');
+  user={id:verified.id,role:rows[0].role,name:rows[0].display_name};
 }
-export function login(username:string,password:string){
-  const user=demoUsers.find(user=>user.username===username.trim().toLowerCase());
-  if(!user||password!==demoPassword)throw Error('Usuario o contraseña incorrectos. Usá una de las cuentas de prueba.');
-  sessionStorage.setItem(sessionKey,JSON.stringify({id:user.id,expiresAt:Date.now()+8*60*60*1000}));
+export async function login(email:string,password:string){
+  user=null;
+  await backend.login(email.trim().toLowerCase(),password);
+  await restoreSession();
   return user;
 }
-export function logout(){sessionStorage.removeItem(sessionKey);}
-export function allowed(user:DemoUser|null,roles:Role[]){return Boolean(user&&roles.includes(user.role));}
-export const canSubmit=(user:DemoUser|null)=>allowed(user,['admin','family']);
+export async function logout(){user=null;await backend.logout();}
+export function allowed(value:ClubUser|null,roles:Role[]){return Boolean(value&&roles.includes(value.role));}
+export const canSubmit=(value:ClubUser|null)=>allowed(value,['admin','family']);

@@ -1,54 +1,42 @@
-# Paraíso Fútbol — piloto local
+# Paraíso Fútbol — piloto con Supabase
 
-Frontend reutilizado desde `C:/Users/fcaceres/Documents/ChatGPT/Paraiso futbol` el 19/09/2026: portada, actividades, formularios, administración, estilos y escudo. El proyecto original no se modifica ni se publica esta copia.
+El frontend reutiliza el sitio original de Paraíso. El piloto se sirve con `node serve.mjs` desde esta carpeta, en http://localhost:4174.
 
-Ejecutar desde esta carpeta: `node serve.mjs`. Abrir http://localhost:4174.
+## Login y reservas compartidas
 
-## Integración real de código
+El piloto utiliza Supabase Auth y las tablas `club_members`, `club_settings` y `club_bookings`. Cada familia consulta únicamente sus reservas; el administrador del club confirma, cancela y configura la agenda. Alumnos y profesores pueden iniciar sesión, pero no reservar ni consultar fichas de otras personas. Sus módulos de clases y asistencia quedan pendientes.
 
-Los componentes originales de reservas e inscripciones llaman a `src/pilot/service.ts`. Este adaptador utiliza **el mismo `createStore` del núcleo PWA**, con empresa `paraiso-pilot`. Reservas usan agenda; fichas demo usan documentos; cambios administrativos usan un registro de eventos separado. La confirmación/cancelación se refleja al consultar de nuevo la disponibilidad. Web Locks serializa las reservas entre pestañas del mismo navegador.
+El servidor asigna el propietario desde la sesión, valida horarios y datos, y evita solapamientos mediante una restricción de PostgreSQL. Un identificador de solicitud hace seguros los reintentos. Los permisos se verifican en la base, aunque se altere el frontend. El cierre de sesión afecta solo a la sesión actual.
 
-El piloto conserva las cinco páginas del sitio. Para servirlas sin Cloudflare ni Next se incluye un punto de entrada React, un enlace HTML compatible y estilos de soporte para sus componentes. `src/app/api`, `src/lib/database.ts`, layout y PWA originales son referencias copiadas y no entran en el bundle. No se llama a la API ni a la base de datos del sitio original.
+`src/pilot/backend.ts` selecciona el proyecto y la empresa. El núcleo Nexo en el puerto 4173 conserva su modo demo independiente. El antiguo adaptador local se conserva como `demo-service.ts` y `demo-auth.ts` para pruebas; no está incluido en el frontend publicado.
 
-## Límites explícitos
+## Cuentas de desarrollo
 
-Solo datos ficticios: el piloto guarda los formularios en localStorage y incluye un login simulado por perfiles. No subir certificados (se rechazan); no transferir señas. No hay reservas compartidas entre dispositivos ni seguridad de servidor. Los controles locales de turnos no reemplazan transacciones en base de datos. El fixture sigue siendo ilustrativo.
+Se crearon perfiles admin, familia, familia2, alumno y profe con correos terminados en `@paraiso.example.com`. No se envían mensajes a esos correos ficticios. Las contraseñas individuales están en `../../.runtime/ACCESOS-PRUEBA.md`, ignorado por Git y fuera de los archivos públicos. La cuenta sin-acceso sirve únicamente para pruebas negativas.
 
-La integración Supabase del núcleo sigue disponible, pero **este adaptador deportivo está limitado al modo local**. Antes de producción requiere tablas tipadas de reservas e inscripciones, autenticación real, aislamiento de fichas por propietario en servidor, disponibilidad pública sin datos personales, validación en servidor y restricción transaccional de solapamientos. Los datos locales no se migran automáticamente.
+Las asignaciones de desarrollo están documentadas en `../../supabase/seed-club-development.sql`, separado de las migraciones automáticas. Para otros clientes, crear sus usuarios y asignar membresías con acceso administrativo; no reutilizar estas cuentas.
 
-## Compilar
+## Verificaciones
 
-`public/app.js` ya está compilado. Para recompilar, instalar las dependencias de la copia de `frontend-origin.package.json` más esbuild, o indicar una instalación existente:
+Desde la raíz del repositorio:
+
+- `node --test`: pruebas locales del núcleo y del adaptador demo.
+- `node scripts/check-supabase-access.mjs`: comprobación remota de lectura anónima.
+- `node scripts/check-club-live.mjs`: prueba integral remota con cuentas del archivo local ignorado. Crea reservas ficticias y las cancela al terminar, conservando el historial. Ejecutar solo en desarrollo; no forma parte de las pruebas automáticas de CI.
+
+## Compilación y HTTPS
+
+El archivo `public/app.js` se entrega compilado. Para recompilar:
 
 ```powershell
 $env:PARAISO_NODE_MODULES = 'C:\Users\fcaceres\Documents\ChatGPT\Paraiso futbol\node_modules'
 node build.mjs
 ```
 
-El archivo `frontend-origin.pnpm-lock.yaml` registra las versiones del frontend de origen. La compilación escribe exclusivamente el bundle dentro de este piloto.
+`start-https.ps1` permite iniciar un túnel temporal contra el servidor local. Cada inicio puede generar una dirección distinta. Los datos guardados en Supabase persisten entre direcciones y dispositivos, pero hay que iniciar sesión en cada uno. El sitio requiere Internet para consultar y guardar reservas; el service worker almacena solo la interfaz pública.
 
-## Prueba en LAN
-Ejecutar con PILOT_HOST igual a la IP Wi-Fi del equipo para escuchar en esa interfaz. El modo HTTP permite formularios demo, pero no instalación/offline mediante service worker ni Web Locks. Las reservas se serializan dentro de una sola pestaña en este modo; no probar concurrencia entre pestañas. Cada navegador y origen mantiene sus propios datos, sin sincronización entre PC y celular. Usar solo datos ficticios.
+## Límites
 
+Entorno de desarrollo: usar datos ficticios y no transferir dinero. Inscripciones, certificados, clases y asistencia todavía no están conectados. No se migran automáticamente las reservas del antiguo almacenamiento local ni del sitio original. Pagos y notificaciones remotas no forman parte de esta entrega.
 
-## HTTPS temporal para instalación PWA
-Se agregó start-https.ps1, que ejecuta cloudflared contra http://127.0.0.1:4174. El ejecutable oficial está en .runtime (ignorado por Git). Requiere el servidor local y conexión a Internet. Cada inicio genera una URL pública diferente de trycloudflare.com; al detener el túnel deja de estar disponible. El enlace no protege acceso por contraseña; usar solo datos ficticios. Los datos de cada origen permanecen separados, por lo que no aparecen automáticamente en la nueva URL. No es un despliegue productivo.
-
-
-
-## Cuentas demo y accesos
-
-Login se muestra a la derecha de Contactanos; con sesión aparece Mi cuenta. La contraseña común es `Paraiso123!`:
-
-| Usuario | Perfil | Acceso |
-|---|---|---|
-| admin | Administrador | Todas las solicitudes, configuración y asistencia |
-| familia | Familia | Crear y consultar solicitudes propias; ver Alex y su asistencia |
-| alumno | Alumno | Ver únicamente clases de ejemplo y asistencia de Alex |
-| profe | Profesor | Ver Alex y Luz del grupo de ejemplo y registrar su asistencia |
-
-La sesión dura 8 horas y se guarda por pestaña. Las credenciales son públicas y el control de permisos funciona solo como simulación en el navegador; no protege información frente a quien inspeccione o altere localStorage. Los registros anteriores sin propietario solo aparecen para administración. Familias no pueden elegir el propietario de una solicitud. Alumnos y profesores no reciben las fichas personales en su vista.
-
-Para probar un circuito, entrar como familia y solicitar un turno; salir e ingresar como admin para confirmarlo; volver a familia para consultar el estado. Registrar asistencia como profe y consultarla como alumno. Las cuentas comparten datos únicamente dentro del mismo navegador y origen web. No son cuentas de Supabase.
-
-No hace falta base de datos para esta demostración. Para producción se necesita un proyecto Supabase de titularidad del usuario, habilitar Auth y configurar tablas y políticas de servidor según cada rol. Nunca ingresar contraseñas reales, certificados médicos o información personal en esta demo.
+Antes de producción faltan dominio y alojamiento estables, proyecto Supabase productivo separado, alta y recuperación de cuentas, gestión operativa de usuarios, respaldo y validación con el club. La compilación todavía depende de la instalación local del frontend original.

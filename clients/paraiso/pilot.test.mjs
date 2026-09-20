@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 test('pilot reservations, role restrictions and ownership',async(t)=>{
   const memory=new Map();globalThis.localStorage={getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v)};
   const session=new Map();globalThis.sessionStorage={getItem:k=>session.get(k)||null,setItem:(k,v)=>session.set(k,v),removeItem:k=>session.delete(k)};
-  const {login,logout,currentUser}=await import('./src/pilot/auth.ts');
+  const {login,logout,currentUser}=await import('./src/pilot/demo-auth.ts');
   assert.throws(()=>login('admin','incorrecta'));
   assert.equal(currentUser(),null);
   login('admin','Paraiso123!');
   Object.defineProperty(navigator,'locks',{configurable:true,value:{request:async(_key,fn)=>fn()}});
-  const {clubRequest}=await import('./src/pilot/service.ts');
+  const {clubRequest}=await import('./src/pilot/demo-service.ts');
   const post=async values=>{const body=new FormData();for(const [key,value] of Object.entries(values))body.set(key,String(value));return clubRequest('/api/club',{method:'POST',body});};
   const date=new Date(Date.now()+86400000*2).toISOString().slice(0,10);
   const booking={action:'booking',id:'request-1',court:'Cancha1',date,start:600,name:'Prueba Piloto',dni:'00000000',phone:'0000000000'};
@@ -52,5 +52,27 @@ test('pilot reservations, role restrictions and ownership',async(t)=>{
     assert.equal((await post({action:'attendance',studentId:'student-demo',present:false})).status,403);
     assert.equal((await post({action:'registration'})).status,403);
     logout();assert.equal(currentUser(),null);
+  });
+  await t.test('family reservation is confirmed by admin and visible after signing back in',async()=>{
+    login('familia','Paraiso123!');
+    const created=await post({...booking,id:'confirmation-flow',court:'Cancha 3'});
+    assert.equal(created.status,201);
+    const {id:reservationId}=await created.json();
+    logout();login('admin','Paraiso123!');
+    assert.equal((await post({action:'status',kind:'bookings',id:reservationId,status:'confirmada'})).status,200);
+    logout();login('familia','Paraiso123!');
+    const workspace=await (await clubRequest('/api/club?action=workspace')).json();
+    assert.equal(workspace.bookings.find(row=>row.id===reservationId).status,'confirmada');
+    logout();
+  });
+  await t.test('simultaneous reservations in the same page accept only one without Web Locks',async()=>{
+    Object.defineProperty(navigator,'locks',{configurable:true,value:undefined});
+    login('familia','Paraiso123!');
+    const responses=await Promise.all([
+      post({...booking,id:'race-a',court:'Cancha 4'}),
+      post({...booking,id:'race-b',court:'Cancha 4'})
+    ]);
+    assert.deepEqual(responses.map(response=>response.status).sort(),[201,400]);
+    logout();
   });
 });

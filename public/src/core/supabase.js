@@ -29,6 +29,6 @@ export function createSupabase(config, sessionStorage = globalThis.sessionStorag
       save({...data, expires_at: Date.now() / 1000 + data.expires_in}); return data.user;
     },
     signup: (email,password) => request('/auth/v1/signup', {method:'POST', body:{email,password}, auth:false}),
-    async logout() { try { await request('/auth/v1/logout', {method:'POST'}); } finally { save(null); } },
+    async logout() { try { await request('/auth/v1/logout?scope=local', {method:'POST'}); } finally { save(null); } },
   };
 }

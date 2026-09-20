@@ -42,6 +42,7 @@ test('public key is not sent as bearer token; login enables user bearer and logo
   await client.request('/rest/v1/module_records');
   assert.equal(calls[1].options.headers.Authorization,'Bearer user-jwt');
   await client.logout();assert.equal(client.user,null);
+  assert.match(calls[2].url,/\/auth\/v1\/logout\?scope=local$/);
 });
 test('expired sessions refresh before data access',async t => {
   const storage=memory();storage.setItem('nexo:session:https://example.supabase.co',JSON.stringify({access_token:'old',refresh_token:'refresh',expires_at:1}));
