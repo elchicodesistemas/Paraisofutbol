@@ -43,6 +43,7 @@ La migración `202609200002_club_push.sql` añade dispositivos, bandeja y result
 - Prueba visual HTTPS: administrador envía recordatorio de actividad a la familia; la bandeja de la familia lo recibe; el panel informa correctamente que no hay dispositivos activados.
 - API pública revisada: la clave privada no se expone.
 - Envío real al dispositivo Android registrado por el usuario: Google aceptó el mensaje. Se corrigió la interpretación de respuestas HTTP 204 de Supabase, que antes mostraba un error después de guardar correctamente la aceptación. Hay una prueba de regresión para este caso.
-- Pendiente de comprobación por el usuario: recepción real en Android y iPhone con pantalla bloqueada/app cerrada. Las pruebas técnicas no sustituyen esa comprobación.
+- El usuario confirmó recepción real del recordatorio de actividad en Android después de la corrección. Se verificó el circuito administrador → proveedor push → celular.
+- Pendiente de comprobación: recepción real en iPhone desde la app instalada. No se dio por verificada a partir de la prueba Android.
 
 Biblioteca: [web-push](https://github.com/web-push-libs/web-push).
