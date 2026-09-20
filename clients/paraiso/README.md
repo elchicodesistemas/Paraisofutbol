@@ -1,6 +1,6 @@
 # Paraíso Fútbol — piloto con Supabase
 
-El frontend reutiliza el sitio original de Paraíso. El piloto se sirve con `node serve.mjs` desde esta carpeta, en http://localhost:4174.
+El frontend reutiliza el sitio original de Paraíso. Instalar las dependencias con `pnpm install --frozen-lockfile` desde la raíz. El piloto se sirve con `node serve.mjs` desde esta carpeta, en http://localhost:4174.
 
 ## Login y reservas compartidas
 
@@ -37,6 +37,8 @@ node build.mjs
 
 ## Límites
 
-Entorno de desarrollo: usar datos ficticios y no transferir dinero. Inscripciones, certificados, clases y asistencia todavía no están conectados. No se migran automáticamente las reservas del antiguo almacenamiento local ni del sitio original. Pagos y notificaciones remotas no forman parte de esta entrega.
+Entorno de desarrollo: usar datos ficticios y no transferir dinero. Inscripciones, certificados, clases y asistencia todavía no están conectados. No se migran automáticamente las reservas del antiguo almacenamiento local ni del sitio original. No se procesan pagos.
+
+Los recordatorios push manuales de pago y actividad están disponibles en Gestión. Cada celular activa los avisos desde Mi cuenta. Ver [guía de notificaciones](../../docs/PUSH-MVP.md), incluyendo instalación para iPhone/Android y limitaciones del túnel temporal.
 
 Antes de producción faltan dominio y alojamiento estables, proyecto Supabase productivo separado, alta y recuperación de cuentas, gestión operativa de usuarios, respaldo y validación con el club. La compilación todavía depende de la instalación local del frontend original.

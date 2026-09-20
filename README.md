@@ -1,6 +1,6 @@
 # Nexo · PWA Business Suite
 
-Base local reutilizable de una plataforma PWA para empresas. HTML, CSS y módulos nativos de JavaScript, sin instalación de dependencias ni compilación. Node.js 22+ sirve los archivos y ejecuta las pruebas.
+Base local reutilizable de una plataforma PWA para empresas. El núcleo usa HTML, CSS y módulos nativos de JavaScript. El piloto Paraíso incluye React y un servidor de notificaciones Web Push; requiere instalar las dependencias con `pnpm install --frozen-lockfile` para ejecutarlo y correr toda la suite. Node.js 24 es la versión utilizada en CI.
 
 ## Iniciar
 

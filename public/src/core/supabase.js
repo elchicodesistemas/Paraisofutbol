@@ -23,6 +23,15 @@ export function createSupabase(config, sessionStorage = globalThis.sessionStorag
   }
   return {
     request,
+    async localRequest(path,body){
+      if(path!=='/api/push/send')throw new Error('Ruta local no autorizada.');
+      if(!session?.access_token)throw new Error('Ingresá a tu cuenta.');
+      await request('/auth/v1/user'); // Refresh if necessary and validate the session.
+      const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify(body)});
+      const result=await response.json();
+      if(!response.ok)throw new Error(result.error||'No se pudo enviar el aviso.');
+      return result;
+    },
     get user() { return session?.user || null; },
     async login(email, password) {
       const data = await request('/auth/v1/token?grant_type=password', {method:'POST', body:{email,password}, auth:false});

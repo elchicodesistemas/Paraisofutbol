@@ -52,3 +52,13 @@ test('expired sessions refresh before data access',async t => {
   await client.request('/rest/v1/module_records');
   assert.match(calls[0].url,/grant_type=refresh_token/);assert.equal(calls[1].options.headers.Authorization,'Bearer new');
 });
+test('local push API receives user token only on the permitted same-origin path',async t=>{
+  const calls=[];
+  t.mock.method(globalThis,'fetch',async(url,options)=>{calls.push({url,options});return Response.json(url.includes('token?')?{access_token:'user-jwt',expires_in:3600,user:{id:'user'}}:{});});
+  const client=createSupabase({supabase:{url:'https://example.supabase.co',publishableKey:'public'}},memory());
+  await assert.rejects(client.localRequest('/api/push/send',{}),/Ingresá/);
+  await client.login('test@example.com','test-password');
+  await assert.rejects(client.localRequest('https://evil.example/api/push/send',{}),/Ruta/);
+  await client.localRequest('/api/push/send',{kind:'test'});
+  const last=calls.at(-1);assert.equal(last.url,'/api/push/send');assert.equal(last.options.headers.Authorization,'Bearer user-jwt');
+});

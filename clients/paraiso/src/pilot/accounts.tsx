@@ -3,6 +3,7 @@ import ClubHeader from '../components/club-header';
 import {currentUser,login,logout,roleNames,type Role} from './auth';
 import {clubRequest} from './service';
 import {clock} from '../lib/club';
+import {Notifications} from './notifications';
 
 export function AccessGate({roles,children}:{roles:Role[];children:React.ReactNode}){
   const user=currentUser();
@@ -30,6 +31,7 @@ export function AccountPage(){
   {user.role==='admin'&&<section className="formcard"><h2>Administración del club</h2><a className="primary" href="/gestion">Abrir gestión →</a></section>}
   {['admin','family'].includes(user.role)&&<section className="formcard"><a className="primary" href="/reservas">Reservar una cancha ↗</a></section>}
   <p className="fieldhint">Inscripciones, clases y asistencias: pendientes de habilitación.</p>
+  <Notifications/>
   {error&&<p className="formerror" role="alert">{error}</p>}<button className="secondarybutton" disabled={busy} onClick={()=>void load()}>{busy?'Cargando…':'Actualizar reservas'}</button>
   {data&&['admin','family'].includes(user.role)&&<section className="formcard"><h2>{user.role==='admin'?'Reservas del club':'Mis reservas'}</h2>{!data.bookings.length?<p>Todavía no hay reservas.</p>:data.bookings.map((row:any)=><article className="student-row" key={row.id}><div><strong>{row.court} · {row.date} · {clock(row.start)}–{clock(row.end)}</strong><small>{row.status}</small><small className="reference">{row.id}</small></div></article>)}</section>}
   </main></>;
