@@ -1,3 +1,4 @@
+import {RecoveryPage,isRecovery} from './recovery';
 import React from 'react';
 import {createRoot} from 'react-dom/client';
 import Home from '../app/page';
@@ -8,7 +9,7 @@ import {AccessGate,LoginPage,AccountPage,PendingRegistration} from './accounts';
 import {restoreSession} from './auth';
 import {InstallApp} from './install';
 const routes:Record<string,React.ComponentType>={'/':Home,'/actividades':Activities,'/reservas':()=> <AccessGate roles={['admin','family']}><Bookings/></AccessGate>,'/inscripciones':PendingRegistration,'/gestion':()=> <AccessGate roles={['admin']}><Admin/></AccessGate>,'/login':LoginPage,'/mi-cuenta':AccountPage};
-const Page=routes[location.pathname]||Home;
+const Page=isRecovery||new URLSearchParams(location.search).has('recuperar')?RecoveryPage:routes[location.pathname]||Home;
 const root=createRoot(document.getElementById('root')!);
 root.render(<p role="status">Conectando con tu cuenta…</p>);
 let sessionError='';

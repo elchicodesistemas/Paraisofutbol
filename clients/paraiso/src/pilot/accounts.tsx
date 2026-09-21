@@ -1,3 +1,4 @@
+import {PasswordField} from './recovery';
 import {useEffect,useState,type FormEvent} from 'react';
 import ClubHeader from '../components/club-header';
 import {currentUser,login,logout,roleNames,type Role} from './auth';
@@ -19,7 +20,7 @@ export function LoginPage(){
     try{await login(String(data.get('email')),String(data.get('password')));location.assign('/mi-cuenta');}
     catch(error){setError((error as Error).message);}finally{setBusy(false);}
   }
-  return <><ClubHeader/><main className="servicepage"><p className="eyebrow green">TU LUGAR EN EL EQUIPO</p><h1>Ingresá a El Paraíso.</h1><p className="lead">Usá el correo y la contraseña de tu cuenta de prueba.</p><form className="formcard" onSubmit={submit}><label className="field">Correo electrónico<input name="email" type="email" autoComplete="username" required/></label><label className="field account-field">Contraseña<input name="password" type="password" autoComplete="current-password" required/></label>{error&&<p className="formerror" role="alert">{error}</p>}<button className="primary" disabled={busy}>{busy?'Ingresando…':'Ingresar →'}</button><p className="fieldhint">Las cuentas y los permisos los asigna la administración. Los antiguos usuarios demo ya no sirven para ingresar.</p></form></main></>;
+  return <><ClubHeader/><main className="servicepage"><p className="eyebrow green">TU LUGAR EN EL EQUIPO</p><h1>Ingresá a El Paraíso.</h1><p className="lead">Usá el correo y la contraseña de tu cuenta de prueba.</p><form className="formcard" onSubmit={submit}><label className="field">Correo electrónico<input name="email" type="email" autoComplete="username" required/></label><PasswordField/>{error&&<p className="formerror" role="alert">{error}</p>}<button className="primary" disabled={busy}>{busy?'Ingresando…':'Ingresar →'}</button><p><a href="/login?recuperar=1">Olvidé mi contraseña</a></p><p className="fieldhint">Las cuentas y los permisos los asigna la administración. Los antiguos usuarios demo ya no sirven para ingresar.</p></form></main></>;
 }
 
 export function AccountPage(){
