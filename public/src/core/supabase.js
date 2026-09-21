@@ -15,7 +15,9 @@ export function createSupabase(config, sessionStorage = globalThis.sessionStorag
     if (auth && session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
     if (!(body instanceof Blob)) headers['Content-Type'] = 'application/json';
     if (path.startsWith('/rest/')) headers.Prefer = `return=representation${upsert ? ',resolution=merge-duplicates' : ''}`;
-    const response = await fetch(`${url.replace(/\/$/, '')}${path}`, { method, headers, body: body == null ? undefined : body instanceof Blob ? body : JSON.stringify(body) });
+    let response;
+    try { response = await fetch(`${url.replace(/\/$/, '')}${path}`, { method, headers, body: body == null ? undefined : body instanceof Blob ? body : JSON.stringify(body) }); }
+    catch { throw new Error('No pudimos conectar con la base de datos. Revisá tu conexión a Internet y volvé a cargar la página.'); }
     const raw = await response.text();
     let data; try { data = raw ? JSON.parse(raw) : null; } catch { data = null; }
     if (!response.ok) throw new Error(data?.msg || data?.message || data?.error_description || `Supabase: ${response.status}`);
@@ -27,8 +29,12 @@ export function createSupabase(config, sessionStorage = globalThis.sessionStorag
       if(path!=='/api/push/send')throw new Error('Ruta local no autorizada.');
       if(!session?.access_token)throw new Error('Ingresá a tu cuenta.');
       await request('/auth/v1/user'); // Refresh if necessary and validate the session.
-      const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify(body)});
-      const result=await response.json();
+      let response;
+      try { response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify(body)}); }
+      catch { throw new Error('Se perdió la conexión con el servidor de avisos. El enlace temporal puede haber vencido o el equipo estar desconectado. Abrí el enlace vigente y actualizá el historial antes de reenviar: el aviso podría haberse procesado.'); }
+      let result;
+      try { result=await response.json(); }
+      catch { throw new Error('El servidor de avisos no respondió correctamente. Verificá el enlace vigente y actualizá el historial antes de reenviar.'); }
       if(!response.ok)throw new Error(result.error||'No se pudo enviar el aviso.');
       return result;
     },

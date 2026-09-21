@@ -62,3 +62,16 @@ test('local push API receives user token only on the permitted same-origin path'
   await client.localRequest('/api/push/send',{kind:'test'});
   const last=calls.at(-1);assert.equal(last.url,'/api/push/send');assert.equal(last.options.headers.Authorization,'Bearer user-jwt');
 });
+test('network failures distinguish database from uncertain push delivery without retrying',async t=>{
+  const storage=memory();storage.setItem('nexo:session:https://example.supabase.co',JSON.stringify({access_token:'jwt',expires_at:Date.now()/1000+3600}));
+  const client=createSupabase({supabase:{url:'https://example.supabase.co',publishableKey:'public'}},storage);
+  let mode='database',sends=0;
+  t.mock.method(globalThis,'fetch',async url=>{
+    if(mode==='database')throw new TypeError('Failed to fetch');
+    if(url==='/api/push/send'){sends++;if(mode==='network')throw new TypeError('Failed to fetch');return new Response('<html>Unavailable</html>',{status:502});}
+    return Response.json({id:'user'});
+  });
+  await assert.rejects(client.localRequest('/api/push/send',{}),/base de datos/);assert.equal(sends,0);
+  mode='network';await assert.rejects(client.localRequest('/api/push/send',{}),/historial antes de reenviar/);assert.equal(sends,1);
+  mode='html';await assert.rejects(client.localRequest('/api/push/send',{}),/no respondió correctamente/);assert.equal(sends,2);
+});
