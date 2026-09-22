@@ -11,7 +11,7 @@ export function AccessGate({roles,children}:{roles:Role[];children:React.ReactNo
   if(user&&roles.includes(user.role))return <>{children}</>;
   return <><ClubHeader/><main className="servicepage"><h1>{user?'Este acceso no corresponde a tu perfil.':'Ingresá para continuar.'}</h1><p className="lead">Disponible para: {roles.map(r=>roleNames[r]).join(', ')}.</p><a className="primary" href={user?'/mi-cuenta':'/login'}>{user?'Ir a mi espacio':'Login'}</a></main></>;
 }
-export function PendingRegistration(){return <><ClubHeader/><main className="servicepage"><h1>Inscripciones</h1><p className="notice">Las inscripciones y los certificados todavía no están habilitados en este entorno de pruebas.</p><a className="primary" href="/mi-cuenta">Ir a mi espacio</a></main></>;}
+export function PendingRegistration(){return <><ClubHeader/><main className="servicepage"><h1>Inscripciones</h1><p className="notice">La inscripción de alumnos y la carga de certificados se realizan desde administración. Contactá al club para gestionar el alta.</p><a className="primary" href="/mi-cuenta">Ir a mi espacio</a></main></>;}
 
 export function LoginPage(){
   const [error,setError]=useState(''),[busy,setBusy]=useState(false);
@@ -29,9 +29,9 @@ export function AccountPage(){
   useEffect(()=>{void load();},[]);
   if(!user)return <AccessGate roles={['admin','family','student','teacher']}><></></AccessGate>;
   return <><ClubHeader/><main className="servicepage"><div className="account-heading"><div><p className="eyebrow green">{roleNames[user.role]}</p><h1>Hola, {user.name}.</h1></div><button className="secondarybutton" onClick={async()=>{try{await logout();}finally{location.assign('/login');}}}>Cerrar sesión</button></div><p className="notice">Entorno de desarrollo. Las reservas se guardan en la nube y podés consultarlas desde otro dispositivo con tu cuenta. Usá datos ficticios; no transfieras dinero.</p>
-  {user.role==='admin'&&<section className="formcard"><h2>Administración del club</h2><a className="primary" href="/gestion">Abrir gestión →</a></section>}
+  {['admin','teacher'].includes(user.role)&&<section className="formcard"><h2>Gestión de la escuela</h2><a className="primary" href="/gestion">Abrir gestión →</a></section>}
   {['admin','family'].includes(user.role)&&<section className="formcard"><a className="primary" href="/reservas">Reservar una cancha ↗</a></section>}
-  <p className="fieldhint">Inscripciones, clases y asistencias: pendientes de habilitación.</p>
+  <p className="fieldhint">Administración y profesores gestionan alumnos y entrenamientos desde el panel. El acceso de familias a las fichas deportivas se habilitará en una etapa posterior.</p>
   <Notifications/>
   {error&&<p className="formerror" role="alert">{error}</p>}<button className="secondarybutton" disabled={busy} onClick={()=>void load()}>{busy?'Cargando…':'Actualizar reservas'}</button>
   {data&&['admin','family'].includes(user.role)&&<section className="formcard"><h2>{user.role==='admin'?'Reservas del club':'Mis reservas'}</h2>{!data.bookings.length?<p>Todavía no hay reservas.</p>:data.bookings.map((row:any)=><article className="student-row" key={row.id}><div><strong>{row.court} · {row.date} · {clock(row.start)}–{clock(row.end)}</strong><small>{row.status}</small><small className="reference">{row.id}</small></div></article>)}</section>}

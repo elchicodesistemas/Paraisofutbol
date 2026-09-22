@@ -8,7 +8,7 @@ import Admin from '../app/gestion/page';
 import {AccessGate,LoginPage,AccountPage,PendingRegistration} from './accounts';
 import {restoreSession} from './auth';
 import {InstallApp} from './install';
-const routes:Record<string,React.ComponentType>={'/':Home,'/actividades':Activities,'/reservas':()=> <AccessGate roles={['admin','family']}><Bookings/></AccessGate>,'/inscripciones':PendingRegistration,'/gestion':()=> <AccessGate roles={['admin']}><Admin/></AccessGate>,'/login':LoginPage,'/mi-cuenta':AccountPage};
+const routes:Record<string,React.ComponentType>={'/':Home,'/actividades':Activities,'/reservas':()=> <AccessGate roles={['admin','family']}><Bookings/></AccessGate>,'/inscripciones':PendingRegistration,'/gestion':()=> <AccessGate roles={['admin','teacher']}><Admin/></AccessGate>,'/login':LoginPage,'/mi-cuenta':AccountPage};
 const Page=isRecovery||new URLSearchParams(location.search).has('recuperar')?RecoveryPage:routes[location.pathname]||Home;
 const root=createRoot(document.getElementById('root')!);
 root.render(<p role="status">Conectando con tu cuenta…</p>);

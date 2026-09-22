@@ -1,0 +1,88 @@
+// Development-only permission/integrity checks. No email or push sends.
+import {readFile,writeFile} from 'node:fs/promises';
+import {randomUUID as uuid} from 'node:crypto';
+import assert from 'node:assert/strict';
+import {createSupabase} from '../public/src/core/supabase.js';
+import config from '../public/config.js';
+import {localDay} from '../clients/paraiso/src/pilot/school/metrics.mjs';
+assert.equal(config.supabase.url,'https://frbbsyvanjmmizvbvvja.supabase.co');
+const accounts=JSON.parse(await readFile(new URL('../.runtime/test-accounts.json',import.meta.url),'utf8'));
+const tenant='11ee1db5-485d-498f-a915-dd36dd7b2e70',clients={};
+for(const name of ['admin','profe','familia','sin-acceso']){const m=new Map(),c=createSupabase(config,{getItem:k=>m.get(k),setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)}),a=accounts.find(x=>x.name===name);await c.login(a.email,a.password);clients[name]=c;}
+const {admin,profe,familia}=clients,outsider=clients['sin-acceso'];
+const rpc=(c,name,data)=>c.request('/rest/v1/rpc/'+name,{method:'POST',body:{p_tenant:tenant,...data}});
+const save=(c,kind,data)=>rpc(c,'school_save',{p_kind:kind,p_data:data});
+const read=(c,t,query='')=>c.request('/rest/v1/'+t+'?tenant_id=eq.'+tenant+'&select=*'+query);
+const uid=uuid().slice(0,8),today=localDay(),year=Number(today.slice(0,4)),birth=(year-17)+'-12-31';
+const cat={id:uuid(),name:'QA '+uid,min_age:17,max_age:17,division:'Prueba',active:true};
+const cat2={...cat,id:uuid(),name:'QA ajena '+uid,min_age:18,max_age:18};
+const tutor={id:uuid(),name:'Adulto ficticio QA '+uid,birth_date:'1990-01-01',phone:'000000000',email:'',person_id:''};
+const student={id:uuid(),name:'Alumno ficticio QA '+uid,birth_date:birth,tutor_id:tutor.id,relationship:'Tutor',category_id:cat.id,position:'',active:true,allergies:'Dato ficticio reservado',notes:'QA'};
+const otherStudent={...student,id:uuid(),name:'Otra categoría QA '+uid,birth_date:(year-18)+'-12-31',category_id:cat2.id};
+const session={id:uuid(),date:'2000-01-10',start_min:600,end_min:660,category_id:cat.id,staff_id:uuid(),court:'QA',plan:'Ficticio',cancelled:false};
+let teacher,originalTeacher,staffReady=false,studentReady=false,otherReady=false,catReady=false,cat2Ready=false;
+try{
+ await save(admin,'category',cat);catReady=true;await save(admin,'category',cat2);cat2Ready=true;
+ await assert.rejects(save(familia,'category',{...cat,id:uuid()}));await assert.rejects(save(outsider,'category',{...cat,id:uuid()}));
+ await assert.rejects(save(admin,'tutor',{...tutor,birth_date:(year-12)+'-01-01'}));
+ await save(admin,'tutor',tutor);
+ await assert.rejects(save(admin,'student',{...student,tutor_id:null}));
+ await assert.rejects(save(admin,'student',{...student,category_id:cat2.id}));
+ await save(admin,'student',{...student,category_id:''});studentReady=true;await save(admin,'student',otherStudent);otherReady=true;
+ assert.equal((await read(admin,'school_students','&id=eq.'+student.id))[0].category_id,cat.id);
+ console.log('PASS adult guardian required, category age validation, role restrictions');
+ const members=await read(admin,'club_members'),member=members.find(m=>m.role==='teacher'&&m.user_id===profe.user.id);assert.ok(member);
+ const staff=await read(admin,'school_staff'),pay=await read(admin,'school_staff_pay'),assign=await read(admin,'school_assignments');originalTeacher=staff.find(s=>s.user_id===member.user_id);
+ if(originalTeacher)originalTeacher={...originalTeacher,pay_mode:pay.find(p=>p.staff_id===originalTeacher.id)?.mode||'Mensual',pay_amount:pay.find(p=>p.staff_id===originalTeacher.id)?.amount||0,categories:assign.filter(a=>a.staff_id===originalTeacher.id).map(a=>a.category_id)};
+ teacher=originalTeacher?{...originalTeacher,active:true,categories:[...new Set([...originalTeacher.categories,cat.id,cat2.id])]}:{id:session.staff_id,name:'Profesor QA '+uid,phone:'',email:'',user_id:member.user_id,active:true,pay_mode:'Mensual',pay_amount:100,categories:[cat.id,cat2.id]};
+ await save(admin,'staff',teacher);staffReady=true;session.staff_id=teacher.id;
+ const used=await read(admin,'school_sessions');let candidate=new Date('2000-01-10T12:00:00Z');while(used.some(s=>s.staff_id===teacher.id&&s.date===candidate.toISOString().slice(0,10))){candidate.setUTCDate(candidate.getUTCDate()+1);}session.date=candidate.toISOString().slice(0,10);
+ await save(admin,'session',session);
+ await assert.rejects(save(admin,'session',{...session,id:uuid(),category_id:cat2.id,start_min:630,end_min:690}));
+ await save(admin,'staff',{...teacher,categories:[...(originalTeacher?.categories||[]),cat.id]});
+ await save(profe,'plan',{session_id:session.id,plan:'Plan guardado por profesor'});
+ await save(profe,'attendance',{session_id:session.id,rows:[{student_id:student.id,state:'Presente'}]});
+ await assert.rejects(save(profe,'attendance',{session_id:session.id,rows:[{student_id:otherStudent.id,state:'Presente'}]}));
+ await assert.rejects(save(admin,'session',{...session,start_min:720,end_min:780}));
+ await assert.rejects(rpc(profe,'school_emergency',{p_category:cat2.id}));
+ assert.equal((await rpc(profe,'school_emergency',{p_category:cat.id})).some(t=>t.student_id===student.id),true);
+ const future={...session,id:uuid(),date:(year+1)+'-01-01'};await save(admin,'session',future);await assert.rejects(save(profe,'attendance',{session_id:future.id,rows:[{student_id:student.id,state:'Presente'}]}));await save(admin,'session',{...future,cancelled:true});
+ for(const table of ['school_medical','school_tutors','school_staff_pay','school_charges','school_payments'])assert.deepEqual(await read(profe,table),[]);
+ assert.equal((await read(profe,'school_students')).some(s=>s.id===otherStudent.id),false);
+ for(const table of ['school_students','school_tutors','school_medical','school_staff','school_sessions']){assert.deepEqual(await read(familia,table),[]);assert.deepEqual(await read(outsider,table),[]);}
+ await assert.rejects(admin.request('/rest/v1/school_students',{method:'POST',body:{...student,id:uuid(),tenant_id:tenant}}));
+ console.log('PASS teacher scope, emergency-only contacts, medical isolation, overlap and attendance checks');
+ const charge={id:uuid(),student_id:student.id,kind:'Cuota',period:'2000-01-01',due_date:'2000-01-10',amount:100,concept:'Cuota QA'};await save(admin,'charge',charge);await assert.rejects(save(admin,'charge',{...charge,id:uuid()}));
+ const payment={id:uuid(),charge_id:charge.id,amount:30,date:'2000-01-10',method:'Efectivo',reference:'QA'};
+ await save(admin,'payment',payment);await save(admin,'payment',payment);assert.equal((await read(admin,'school_payments','&charge_id=eq.'+charge.id)).length,1);
+ const attempts=await Promise.allSettled([save(admin,'payment',{...payment,id:uuid(),amount:60}),save(admin,'payment',{...payment,id:uuid(),amount:60})]);assert.equal(attempts.filter(x=>x.status==='fulfilled').length,1);
+ await assert.rejects(save(admin,'payment',{...payment,id:uuid(),amount:11}));await assert.rejects(save(profe,'payment',{...payment,id:uuid(),amount:1}));
+ await assert.rejects(save(admin,'void_payment',{id:payment.id,reason:null}));await save(admin,'void_payment',{id:payment.id,reason:'Prueba de anulación'});
+ assert.ok((await read(admin,'school_payments','&id=eq.'+payment.id))[0].voided_at);
+ const enroll={...charge,id:uuid(),kind:'Matrícula',period:'2000-02-01'};await save(admin,'charge',enroll);await assert.rejects(save(admin,'charge',{...enroll,id:uuid(),period:'2000-03-01'}));
+ await save(admin,'expense',{id:uuid(),date:'2000-01-10',concept:'Material ficticio QA',category:'Materiales',amount:50,method:'Efectivo'});
+ console.log('PASS monthly and annual uniqueness, idempotent payments, concurrent overpayment protection and void audit');
+ const match={id:uuid(),category_id:cat.id,date:today,start_min:600,opponent:'Club ficticio QA',venue:'Predio QA',side:'Local',status:'Programado'};await save(admin,'match',match);
+ await save(profe,'callup',{match_id:match.id,student_id:student.id});await assert.rejects(save(profe,'callup',{match_id:match.id,student_id:otherStudent.id}));
+ await assert.rejects(save(profe,'callup',{match_id:match.id,student_id:student.id,goals:1}));await save(admin,'match',{...match,status:'Jugado'});await save(profe,'callup',{match_id:match.id,student_id:student.id,goals:1,minutes:30});
+ await assert.rejects(rpc(profe,'school_match_campaign',{p_match:match.id,p_request:uuid()}));
+ await save(admin,'match',{...match,status:'Cancelado'});
+ console.log('PASS scoped callups, played-match stats and notification authorization (no sends)');
+ const fileId=uuid(),path=tenant+'/'+fileId+'/qa.pdf';
+ await admin.request('/storage/v1/object/school-private/'+path,{method:'POST',body:new Blob(['%PDF-1.4\n% fictitious QA\n%%EOF'],{type:'application/pdf'})});
+ await rpc(admin,'school_register_file',{p_id:fileId,p_student:student.id,p_staff:null,p_kind:'Apto médico',p_name:'qa.pdf',p_path:path});
+ const signed=await admin.request('/storage/v1/object/sign/school-private/'+path,{method:'POST',body:{expiresIn:60}});assert.ok(signed.signedURL||signed.signedUrl);
+ for(const c of [profe,familia,outsider])await assert.rejects(c.request('/storage/v1/object/sign/school-private/'+path,{method:'POST',body:{expiresIn:60}}));
+ await admin.request('/storage/v1/object/school-private',{method:'DELETE',body:{prefixes:[path]}});
+ console.log('PASS private storage: admin signs medical file, teacher/family/outsider rejected');
+ await writeFile(new URL('../.runtime/school-qa-last.json',import.meta.url),JSON.stringify({student:student.id,category:cat.id,session:session.id},null,2));
+}finally{
+ // Keep financial/attendance audit rows, but remove test participants from active dashboards.
+ const cleanup=[];
+ if(studentReady)cleanup.push(save(admin,'student',{...student,active:false}));
+ if(otherReady)cleanup.push(save(admin,'student',{...otherStudent,active:false}));
+ const results=await Promise.allSettled(cleanup);for(const r of results)if(r.status==='rejected')console.error('Cleanup:',r.reason.message);
+ if(staffReady)await save(admin,'staff',originalTeacher||{...teacher,active:false,categories:[]});
+ if(catReady)await save(admin,'category',{...cat,active:false});if(cat2Ready)await save(admin,'category',{...cat2,active:false});
+ for(const c of Object.values(clients))await c.logout();
+}
